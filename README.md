@@ -1,6 +1,6 @@
 # BiliDownloader
 
-Ứng dụng desktop **độc lập hoàn toàn** dành cho Windows 10/11 (64-bit) chuyên dùng để phân tích và tải video, audio, danh sách phát và kênh UP chủ từ **Bilibili** (không tích hợp bất kỳ nền tảng nào khác).
+Ứng dụng desktop **độc lập hoàn toàn** dành cho **Windows 10/11 (64-bit)** và **macOS** chuyên dùng để phân tích và tải video, audio, danh sách phát và kênh UP chủ từ **Bilibili** (không tích hợp bất kỳ nền tảng nào khác).
 
 ## Tính năng chính
 
@@ -16,6 +16,17 @@
   - Hỗ trợ nhiều tác vụ đồng thời có giới hạn (1–5), **Tạm dừng / Tiếp tục** bằng HTTP `Range`, tự làm mới link CDN khi hết hạn, thử lại khi mạng chập chờn, theo dõi %, MB, tốc độ và ETA.
 - **Lịch sử & Quét kênh UP**: Lưu lịch sử mở lại video/thư mục hoặc tải lại từ URL gốc; quét phân trang toàn bộ video trên trang cá nhân `space.bilibili.com`.
 - **Bảo mật Cookie**: Hỗ trợ dán Cookie (Header / Netscape / JSON), chỉ gửi tới miền Bilibili, tự động che trong log và không lưu vào metadata.
+
+---
+
+## Cài đặt & Sử dụng trên macOS (Apple Silicon / Intel)
+
+1. Mở trực tiếp **`dist/mac-arm64/BiliDownloader.app`** (hoặc kéo `BiliDownloader.app` từ file **`BiliDownloader-1.0.0-mac-arm64.dmg`** vào thư mục **Applications**).
+2. Ngoài ra có thể nhấp đúp **`Start_Mac.command`** để mở nhanh ứng dụng.
+3. Nếu macOS Gatekeeper cảnh báo ứng dụng tải ngoài App Store chưa ký Developer ID, mở bằng **Chuột phải → Open**, hoặc chạy:
+   ```bash
+   xattr -cr /Applications/BiliDownloader.app
+   ```
 
 ---
 
@@ -49,6 +60,17 @@ npm test
 # Chạy offline (bỏ qua test mạng trực tiếp Bilibili)
 SKIP_LIVE_BILIBILI=1 npm test
 ```
+
+### Đóng gói cho macOS (`.app`, `.dmg`, `.zip`)
+```bash
+npm run fetch-mac-bins
+npm run build:mac
+npm run verify:mac
+```
+Sản phẩm tạo ra nằm trong `dist/`:
+- `dist/mac-arm64/BiliDownloader.app` (Ứng dụng macOS độc lập)
+- `dist/BiliDownloader-<version>-mac-arm64.dmg` (Bộ cài kéo-thả DMG)
+- `dist/BiliDownloader-<version>-mac-arm64.zip`
 
 ### Đóng gói thành `.exe` trên Windows 10/11 64-bit (hoặc GitHub Actions)
 1. Tải binary Windows (`ffmpeg.exe`, `yt-dlp.exe`):

@@ -20,6 +20,7 @@ function getFfmpegPath() {
   if (customFfmpegPath && fs.existsSync(customFfmpegPath)) return customFfmpegPath;
 
   const isWin = process.platform === 'win32';
+  const osDir = isWin ? 'win' : 'mac';
   const binName = isWin ? 'ffmpeg.exe' : 'ffmpeg';
 
   const candidates = [];
@@ -27,6 +28,7 @@ function getFfmpegPath() {
     candidates.push(path.join(process.resourcesPath, 'bin', binName));
     candidates.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffmpeg-static', binName));
   }
+  candidates.push(path.join(__dirname, '..', 'resources', 'bin', osDir, binName));
   candidates.push(path.join(__dirname, '..', 'resources', 'bin', binName));
 
   try {

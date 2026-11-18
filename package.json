@@ -15,9 +15,12 @@
     "test:security": "node tests/test_cookie_security.js",
     "icons": "node scripts/generate-icons.js",
     "fetch-win-bins": "node scripts/fetch-win-binaries.js",
+    "fetch-mac-bins": "node scripts/fetch-mac-binaries.js",
     "pack:dir": "electron-builder --dir",
     "build:win": "node scripts/generate-icons.js && electron-builder --win",
-    "verify:win": "node scripts/verify-windows-build.js"
+    "verify:win": "node scripts/verify-windows-build.js",
+    "build:mac": "node scripts/generate-icons.js && electron-builder --mac",
+    "verify:mac": "node scripts/verify-mac-build.js"
   },
   "dependencies": {
     "ffmpeg-static": "^5.3.0"
@@ -51,7 +54,7 @@
     ],
     "extraResources": [
       {
-        "from": "resources/bin",
+        "from": "resources/bin/${os}",
         "to": "bin",
         "filter": [
           "**/*"
@@ -91,9 +94,12 @@
     },
     "mac": {
       "target": [
-        "dir"
+        "dmg",
+        "zip"
       ],
-      "icon": "assets/icon.png"
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.utilities",
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
     }
   }
 }

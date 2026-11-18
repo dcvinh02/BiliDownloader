@@ -4,8 +4,10 @@
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const zlib = require('zlib');
+const { spawnSync } = require('child_process');
 
 const ASSETS_DIR = path.join(__dirname, '..', 'assets');
 
@@ -232,10 +234,44 @@ function generateAllIcons() {
   const icoBuf = buildIcoFromPngs(pngEntries);
   fs.writeFileSync(path.join(ASSETS_DIR, 'icon.ico'), icoBuf);
 
+  let icnsPath = null;
+  if (process.platform === 'darwin') {
+    const iconsetDir = path.join(os.tmpdir(), `bilidl_${Date.now()}.iconset`);
+    try {
+      fs.mkdirSync(iconsetDir, { recursive: true });
+      const specs = [
+        ['icon_16x16.png', 16],
+        ['icon_16x16@2x.png', 32],
+        ['icon_32x32.png', 32],
+        ['icon_32x32@2x.png', 64],
+        ['icon_128x128.png', 128],
+        ['icon_128x128@2x.png', 256],
+        ['icon_256x256.png', 256],
+        ['icon_256x256@2x.png', 512],
+        ['icon_512x512.png', 512]
+      ];
+      const cache = new Map();
+      for (const [fname, sz] of specs) {
+        if (!cache.has(sz)) {
+          cache.set(sz, sz === 512 ? png512 : encodePngRgba(sz, sz, renderIconBuffer(sz)));
+        }
+        fs.writeFileSync(path.join(iconsetDir, fname), cache.get(sz));
+      }
+      const targetIcns = path.join(ASSETS_DIR, 'icon.icns');
+      const r = spawnSync('iconutil', ['-c', 'icns', iconsetDir, '-o', targetIcns], { encoding: 'utf8' });
+      if (r.status === 0 && fs.existsSync(targetIcns)) {
+        icnsPath = targetIcns;
+      }
+    } finally {
+      fs.rmSync(iconsetDir, { recursive: true, force: true });
+    }
+  }
+
   return {
     svg: path.join(ASSETS_DIR, 'icon.svg'),
     png: path.join(ASSETS_DIR, 'icon.png'),
-    ico: path.join(ASSETS_DIR, 'icon.ico')
+    ico: path.join(ASSETS_DIR, 'icon.ico'),
+    ...(icnsPath ? { icns: icnsPath } : {})
   };
 }
 

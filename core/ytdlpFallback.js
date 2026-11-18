@@ -22,12 +22,14 @@ function getYtDlpPath() {
   if (customYtDlpPath && fs.existsSync(customYtDlpPath)) return customYtDlpPath;
 
   const isWin = process.platform === 'win32';
+  const osDir = isWin ? 'win' : 'mac';
   const binName = isWin ? 'yt-dlp.exe' : 'yt-dlp';
   const candidates = [];
 
   if (process.resourcesPath) {
     candidates.push(path.join(process.resourcesPath, 'bin', binName));
   }
+  candidates.push(path.join(__dirname, '..', 'resources', 'bin', osDir, binName));
   candidates.push(path.join(__dirname, '..', 'resources', 'bin', binName));
   candidates.push(path.join(__dirname, '..', 'bin', binName));
 

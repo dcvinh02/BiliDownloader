@@ -2,7 +2,7 @@
  * Electron Main Process — BiliDownloader Desktop App (Windows 10/11 & macOS)
  */
 
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -14,6 +14,7 @@ let mainWindow = null;
 let mediaProxyServer = null;
 let mediaProxyPort = 0;
 let core = null;
+let coreInitialized = false;
 
 // Đảm bảo chỉ chạy 1 cửa sổ ứng dụng cùng lúc (Single Instance)
 const gotLock = app.requestSingleInstanceLock();
@@ -230,15 +231,63 @@ function registerIpcHandlers() {
   ipcMain.handle('logs:recent', () => core.logger.getRecentLogs(120));
 }
 
-async function createMainWindow() {
+function setupMacApplicationMenu() {
+  if (process.platform !== 'darwin') return;
+  const template = [
+    {
+      label: app.name,
+      submenu: [
+        { role: 'about', label: 'Giới thiệu BiliDownloader' },
+        { type: 'separator' },
+        { role: 'hide', label: 'Ẩn BiliDownloader' },
+        { role: 'hideOthers', label: 'Ẩn các cửa sổ khác' },
+        { role: 'unhide', label: 'Hiện tất cả' },
+        { type: 'separator' },
+        { role: 'quit', label: 'Thoát BiliDownloader' }
+      ]
+    },
+    {
+      label: 'Chỉnh sửa',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' }
+      ]
+    },
+    {
+      label: 'Cửa sổ',
+      submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }]
+    }
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+async function ensureCoreInitialized() {
+  if (coreInitialized) return;
+  coreInitialized = true;
   const userDataDir = app.getPath('userData');
   core = createBiliCore({
     userDataDir,
     logDir: path.join(userDataDir, 'logs')
   });
-
   await startLocalMediaProxy();
   registerIpcHandlers();
+  setupMacApplicationMenu();
+
+  if (process.platform === 'darwin' && app.dock) {
+    const dockIcon = path.join(__dirname, '..', 'assets', 'icon.png');
+    if (fs.existsSync(dockIcon)) {
+      try { app.dock.setIcon(dockIcon); } catch {}
+    }
+  }
+}
+
+async function createMainWindow() {
+  await ensureCoreInitialized();
 
   const iconPath = path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png');
 
@@ -249,7 +298,7 @@ async function createMainWindow() {
     minHeight: 680,
     title: `BiliDownloader v${app.getVersion()}`,
     icon: fs.existsSync(iconPath) ? iconPath : undefined,
-    autoHideMenuBar: true,
+    autoHideMenuBar: process.platform !== 'darwin',
     backgroundColor: '#11161f',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -275,7 +324,7 @@ async function createMainWindow() {
 
 app.whenReady().then(async () => {
   await createMainWindow();
-  // Chế độ tự kiểm tra đóng gói cho CI Windows (--smoke-test)
+  // Chế độ tự kiểm tra đóng gói cho CI (--smoke-test)
   if (process.argv.includes('--smoke-test')) {
     setTimeout(() => {
       console.log('SMOKE_TEST_OK');
@@ -284,10 +333,14 @@ app.whenReady().then(async () => {
   }
 });
 
-app.on('window-all-closed', () => {
+app.on('before-quit', () => {
   if (mediaProxyServer) {
     try { mediaProxyServer.close(); } catch {}
+    mediaProxyServer = null;
   }
+});
+
+app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }

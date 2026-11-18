@@ -5,8 +5,10 @@ logs/
 *.log
 .DS_Store
 Thumbs.db
-resources/bin/*
-!resources/bin/.gitkeep
+resources/bin/win/*
+resources/bin/mac/*
+!resources/bin/win/.gitkeep
+!resources/bin/mac/.gitkeep
 downloads/
 tests/.tmp/
 .env

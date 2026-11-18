@@ -63,3 +63,36 @@ jobs:
           path: |
             dist/BiliDownloader-Setup-*.exe
             dist/BiliDownloader-Portable-*.exe
+
+  build-macos-release:
+    needs: test-cross-platform
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cài đặt thư viện Node (macOS)
+        run: npm ci --no-audit --no-fund
+
+      - name: Tạo icon macOS (.icns)
+        run: npm run icons
+
+      - name: Tải & nhúng yt-dlp cho macOS
+        run: npm run fetch-mac-bins
+
+      - name: Đóng gói ứng dụng macOS (.app, .dmg, .zip)
+        run: npm run build:mac
+
+      - name: Kiểm tra thực tế BiliDownloader.app trên macOS runner
+        run: npm run verify:mac
+
+      - name: Upload bản cài đặt macOS (.dmg & .zip)
+        uses: actions/upload-artifact@v4
+        with:
+          name: BiliDownloader-macOS
+          path: |
+            dist/BiliDownloader-*-mac-*.dmg
+            dist/BiliDownloader-*-mac-*.zip

@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BIN_DIR = path.join(__dirname, '..', 'resources', 'bin');
+const BIN_DIR = path.join(__dirname, '..', 'resources', 'bin', 'win');
 
 async function downloadFile(url, destPath) {
   console.log(`Đang tải ${url} -> ${destPath}`);
