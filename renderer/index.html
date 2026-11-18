@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BiliDownloader — Trình tải video Bilibili độc lập</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar điều hướng -->
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="../assets/icon.png" alt="Logo" class="brand-icon">
+        <div>
+          <div class="brand-name">BiliDownloader</div>
+          <div class="brand-sub" id="appVersionBadge">v1.0.0</div>
+        </div>
+      </div>
+
+      <nav class="nav-list">
+        <button class="nav-item active" data-view="download">
+          <span class="nav-ico">⬇</span>
+          <span>Tải video</span>
+        </button>
+        <button class="nav-item" data-view="queue">
+          <span class="nav-ico">☰</span>
+          <span>Hàng đợi tải</span>
+          <span class="nav-badge hidden" id="queueCountBadge">0</span>
+        </button>
+        <button class="nav-item" data-view="space">
+          <span class="nav-ico">👤</span>
+          <span>Quét kênh UP</span>
+        </button>
+        <button class="nav-item" data-view="history">
+          <span class="nav-ico">🕘</span>
+          <span>Lịch sử</span>
+        </button>
+        <button class="nav-item" data-view="settings">
+          <span class="nav-ico">⚙</span>
+          <span>Cài đặt</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="cookie-pill" id="sidebarCookieBtn" title="Cấu hình Cookie Bilibili">
+          <span class="status-dot" id="cookieStatusDot"></span>
+          <span id="sidebarCookieLabel">Khách (Chưa Cookie)</span>
+        </button>
+        <button class="theme-toggle" id="themeToggleBtn" title="Đổi giao diện Sáng / Tối">
+          <span id="themeToggleLabel">🌙 Giao diện Tối</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Khu vực nội dung chính -->
+    <main class="main-content">
+      <!-- ==================== VIEW 1: TẢI VIDEO ==================== -->
+      <section class="view-pane active" id="view-download">
+        <header class="view-header">
+          <div>
+            <h1>Tải video Bilibili</h1>
+            <p class="subtitle">Hỗ trợ BV/AV, link rút gọn b23.tv, video nhiều phần (?p=), Playlist/Collection, Bangumi/PGC và bilibili.tv</p>
+          </div>
+        </header>
+
+        <div class="card url-input-card">
+          <div class="url-row">
+            <input
+              type="text"
+              id="urlInput"
+              class="input-control url-field"
+              placeholder="Dán link Bilibili (vd: https://www.bilibili.com/video/BV..., b23.tv/..., ep..., av...) hoặc mã BV"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <button class="btn btn-secondary" id="pasteBtn" title="Dán từ Clipboard">Dán</button>
+            <button class="btn btn-secondary" id="clearUrlBtn" title="Xóa ô nhập">Xóa</button>
+            <button class="btn btn-primary" id="analyzeBtn">
+              <span class="spinner hidden" id="analyzeSpinner"></span>
+              <span id="analyzeBtnText">Phân tích</span>
+            </button>
+          </div>
+          <div class="quick-tips">
+            Ví dụ: <code>BV1uv411q7Mv</code> • <code>https://www.bilibili.com/video/BV17x411w7KC?p=2</code> • <code>https://b23.tv/...</code>
+          </div>
+        </div>
+
+        <div class="alert alert-error hidden" id="analyzeErrorBox"></div>
+
+        <!-- Khung hiển thị thông tin chi tiết & chất lượng -->
+        <div class="hidden" id="videoResultContainer">
+          <div class="card video-detail-card">
+            <div class="detail-layout">
+              <!-- Cột trái: Preview + Kênh tác giả + Link chuẩn -->
+              <div class="detail-left">
+                <div class="preview-box" id="previewBox">
+                  <img id="resCoverImg" src="" alt="Thumbnail" class="cover-img">
+                  <span class="duration-pill" id="resDurationPill">00:00</span>
+                </div>
+                <div class="preview-actions" id="previewActionsBar"></div>
+
+                <div class="author-card">
+                  <img id="resAuthorAvatar" src="" alt="" class="author-avatar hidden">
+                  <div class="author-meta">
+                    <div class="author-name" id="resAuthorName">—</div>
+                    <div class="author-uid" id="resAuthorUid"></div>
+                  </div>
+                  <button class="btn btn-sm btn-secondary hidden" id="scanAuthorBtn">Quét kênh</button>
+                </div>
+
+                <div class="clean-links-box">
+                  <div class="mini-label">Liên kết chuẩn hóa</div>
+                  <div class="copy-row">
+                    <input type="text" readonly class="input-control input-sm" id="resCleanUrl">
+                    <button class="btn btn-sm btn-secondary" id="copyCleanUrlBtn">Copy</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cột phải: Toàn bộ thông số metadata -->
+              <div class="detail-right">
+                <div class="badges-row" id="resBadgesRow"></div>
+                <h2 class="video-title" id="resTitle">—</h2>
+
+                <div class="stats-grid" id="resStatsGrid"></div>
+
+                <div class="desc-box hidden" id="resDescBox">
+                  <div class="desc-header">
+                    <span>Mô tả video</span>
+                    <button class="link-btn hidden" id="toggleDescBtn">Xem thêm</button>
+                  </div>
+                  <div class="desc-text" id="resDescText"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Danh sách Phần (Pages) hoặc Playlist/Episodes (chỉ hiện nếu video thực sự có) -->
+          <div class="card hidden" id="partsOrPlaylistCard">
+            <div class="section-head">
+              <div>
+                <h3 id="partsSectionTitle">Danh sách phần / tập</h3>
+                <p class="section-sub" id="partsSectionSub"></p>
+              </div>
+              <div class="section-actions">
+                <button class="btn btn-sm btn-secondary" id="selectAllPartsBtn">Chọn tất cả</button>
+                <button class="btn btn-sm btn-primary" id="enqueueSelectedPartsBtn">Tải các mục đã chọn</button>
+              </div>
+            </div>
+            <div class="parts-list" id="partsList"></div>
+          </div>
+
+          <!-- Bảng lựa chọn chất lượng thực tế & Tùy chọn tải xuống -->
+          <div class="card quality-card">
+            <div class="section-head">
+              <div>
+                <h3>Lựa chọn chất lượng &amp; Luồng tải thực tế</h3>
+                <p class="section-sub" id="streamEngineLabel">Chỉ hiển thị các luồng thực tế nhận được từ Bilibili</p>
+              </div>
+              <div class="segmented" id="downloadModeGroup">
+                <button class="seg-btn active" data-mode="video_audio">Video + Âm thanh</button>
+                <button class="seg-btn" data-mode="video_only">Chỉ Video</button>
+                <button class="seg-btn" data-mode="audio_only">Chỉ Âm thanh</button>
+              </div>
+            </div>
+
+            <div class="quality-list" id="videoQualityList"></div>
+
+            <div class="locked-notice hidden" id="lockedQualitiesBox"></div>
+
+            <div class="audio-select-row hidden" id="audioTrackRow">
+              <label for="audioTrackSelect">Luồng âm thanh (Audio):</label>
+              <select id="audioTrackSelect" class="input-control"></select>
+            </div>
+
+            <div class="download-options-grid">
+              <div class="field-group">
+                <label for="customFilenameInput">Tên file đầu ra</label>
+                <input type="text" id="customFilenameInput" class="input-control" placeholder="Tên file (không cần đuôi mở rộng)">
+              </div>
+              <div class="field-group">
+                <label for="outputFormatSelect">Định dạng xuất</label>
+                <select id="outputFormatSelect" class="input-control"></select>
+              </div>
+              <div class="field-group field-span-2">
+                <label>Thư mục lưu file</label>
+                <div class="folder-picker-row">
+                  <input type="text" id="taskSaveDirInput" class="input-control" readonly>
+                  <button class="btn btn-secondary" id="chooseTaskFolderBtn">Chọn thư mục</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="download-cta-row">
+              <button class="btn btn-primary btn-lg" id="startDownloadBtn">⬇ Bắt đầu tải</button>
+              <button class="btn btn-secondary" id="exportMetaBtn">Xuất JSON Metadata</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 2: HÀNG ĐỢI TẢI ==================== -->
+      <section class="view-pane" id="view-queue">
+        <header class="view-header">
+          <div>
+            <h1>Hàng đợi tải xuống</h1>
+            <p class="subtitle" id="queueSummaryLabel">Đang chạy 0 • Đang chờ 0</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-secondary" id="openDownloadDirBtn">Mở thư mục tải</button>
+            <button class="btn btn-secondary" id="clearFinishedJobsBtn">Dọn mục đã xong / hủy</button>
+          </div>
+        </header>
+
+        <div class="queue-list" id="queueList">
+          <div class="empty-state">Chưa có tác vụ tải nào trong hàng đợi.</div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 3: QUÉT KÊNH UP ==================== -->
+      <section class="view-pane" id="view-space">
+        <header class="view-header">
+          <div>
+            <h1>Quét video kênh UP chủ (Space Bilibili)</h1>
+            <p class="subtitle">Hỗ trợ link <code>space.bilibili.com/UID</code>, UID số, hoặc tìm tên kênh Bilibili</p>
+          </div>
+        </header>
+
+        <div class="card url-input-card">
+          <div class="url-row">
+            <input type="text" id="spaceInput" class="input-control url-field" placeholder="Nhập link space.bilibili.com/123456, UID hoặc tên kênh UP chủ">
+            <button class="btn btn-primary" id="scanSpaceBtn">
+              <span class="spinner hidden" id="spaceSpinner"></span>
+              <span>Quét kênh</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="alert alert-error hidden" id="spaceErrorBox"></div>
+
+        <div class="hidden" id="spaceResultContainer">
+          <div class="card space-profile-card">
+            <div class="space-profile-left">
+              <img id="spaceAvatar" src="" alt="" class="space-avatar hidden">
+              <div>
+                <h2 id="spaceName">—</h2>
+                <div class="space-meta" id="spaceMeta"></div>
+                <div class="space-sign" id="spaceSign"></div>
+              </div>
+            </div>
+            <div class="space-actions">
+              <button class="btn btn-secondary btn-sm" id="spaceSelectAllBtn">Chọn tất cả trang</button>
+              <button class="btn btn-primary btn-sm" id="spaceEnqueueBtn">Tải các video đã chọn</button>
+            </div>
+          </div>
+
+          <div class="space-videos-grid" id="spaceVideosGrid"></div>
+
+          <div class="pagination-row">
+            <button class="btn btn-secondary btn-sm" id="spacePrevBtn">← Trang trước</button>
+            <span id="spacePageLabel">Trang 1</span>
+            <button class="btn btn-secondary btn-sm" id="spaceNextBtn">Trang sau →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 4: LỊCH SỬ ==================== -->
+      <section class="view-pane" id="view-history">
+        <header class="view-header">
+          <div>
+            <h1>Lịch sử tải xuống</h1>
+            <p class="subtitle">Quản lý video đã tải thành công, mở thư mục hoặc tải lại từ URL gốc</p>
+          </div>
+          <div class="header-actions">
+            <input type="text" id="historySearchInput" class="input-control input-sm" placeholder="Tìm theo tên hoặc mã BV...">
+            <button class="btn btn-danger-outline" id="clearHistoryBtn">Xóa lịch sử</button>
+          </div>
+        </header>
+
+        <div class="history-list" id="historyList">
+          <div class="empty-state">Chưa có lịch sử tải xuống.</div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 5: CÀI ĐẶT ==================== -->
+      <section class="view-pane" id="view-settings">
+        <header class="view-header">
+          <div>
+            <h1>Cài đặt &amp; Xác thực Cookie</h1>
+            <p class="subtitle">Cấu hình thư mục lưu, số luồng tải đồng thời, Cookie Bilibili an toàn và chẩn đoán FFmpeg</p>
+          </div>
+        </header>
+
+        <div class="settings-grid">
+          <div class="card">
+            <h3>Cấu hình tải xuống</h3>
+            <div class="field-group">
+              <label>Thư mục lưu mặc định</label>
+              <div class="folder-picker-row">
+                <input type="text" id="setDownloadDir" class="input-control" readonly>
+                <button class="btn btn-secondary" id="setBrowseDirBtn">Thay đổi</button>
+              </div>
+            </div>
+
+            <div class="settings-two-col">
+              <div class="field-group">
+                <label for="setMaxConcurrent">Số tác vụ tải đồng thời (1–5)</label>
+                <select id="setMaxConcurrent" class="input-control">
+                  <option value="1">1 tác vụ</option>
+                  <option value="2">2 tác vụ (Khuyên dùng)</option>
+                  <option value="3">3 tác vụ</option>
+                  <option value="4">4 tác vụ</option>
+                  <option value="5">5 tác vụ</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label for="setTheme">Giao diện ứng dụng</label>
+                <select id="setTheme" class="input-control">
+                  <option value="dark">Tối (Dark)</option>
+                  <option value="light">Sáng (Light)</option>
+                </select>
+              </div>
+            </div>
+
+            <label class="checkbox-row">
+              <input type="checkbox" id="setSaveMetadata">
+              <span>Lưu kèm file <code>.metadata.json</code> bên cạnh video (đã tự động lọc bỏ Cookie/Token)</span>
+            </label>
+
+            <div class="settings-save-row">
+              <button class="btn btn-primary" id="saveSettingsBtn">Lưu cài đặt</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Cookie tài khoản Bilibili (Tùy chọn)</h3>
+            <p class="section-sub">
+              Cần thiết nếu bạn muốn tải chất lượng cao yêu cầu tài khoản (1080P+, 1080P60, 4K, 8K cho tài khoản VIP hợp lệ) hoặc video giới hạn đăng nhập.
+              <strong>Bảo mật:</strong> Cookie chỉ lưu cục bộ trên máy, chỉ gửi tới miền <code>bilibili.com</code> / <code>bilivideo.com</code> và tự động che trong mọi file log.
+            </p>
+            <div class="cookie-status-banner" id="settingsCookieBanner">Đang kiểm tra trạng thái Cookie...</div>
+            <textarea
+              id="cookieTextarea"
+              class="input-control cookie-textarea"
+              rows="4"
+              placeholder="Dán chuỗi Cookie Header (SESSDATA=...; bili_jct=...), nội dung Netscape cookies.txt, hoặc JSON array từ trình duyệt..."
+              spellcheck="false"
+            ></textarea>
+            <div class="cookie-actions-row">
+              <button class="btn btn-primary" id="saveCookieBtn">Lưu &amp; Kiểm tra Cookie</button>
+              <button class="btn btn-danger-outline" id="clearCookieBtn">Xóa Cookie</button>
+            </div>
+          </div>
+
+          <div class="card field-span-2">
+            <div class="section-head">
+              <div>
+                <h3>Thông tin hệ thống &amp; Nhật ký lỗi</h3>
+                <p class="section-sub" id="sysDiagLabel">Đang tải thông tin...</p>
+              </div>
+              <button class="btn btn-sm btn-secondary" id="refreshLogsBtn">Làm mới Log</button>
+            </div>
+            <pre class="logs-box" id="logsBox"></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Toast thông báo -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

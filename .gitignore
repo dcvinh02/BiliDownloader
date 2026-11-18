@@ -1,0 +1,12 @@
+node_modules/
+dist/
+out/
+logs/
+*.log
+.DS_Store
+Thumbs.db
+resources/bin/*
+!resources/bin/.gitkeep
+downloads/
+tests/.tmp/
+.env

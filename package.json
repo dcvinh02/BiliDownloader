@@ -1,0 +1,99 @@
+{
+  "name": "bilidownloader",
+  "productName": "BiliDownloader",
+  "version": "1.0.0",
+  "description": "Ứng dụng Desktop độc lập chuyên tải video, audio, danh sách phát và kênh UP chủ từ Bilibili cho Windows 10/11",
+  "main": "electron/main.js",
+  "author": "BiliDownloader Team",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node tests/run_all.js",
+    "test:url": "node tests/test_url_parser.js",
+    "test:api": "node tests/test_api_metadata_quality.js",
+    "test:download": "node tests/test_download_ffmpeg.js",
+    "test:security": "node tests/test_cookie_security.js",
+    "icons": "node scripts/generate-icons.js",
+    "fetch-win-bins": "node scripts/fetch-win-binaries.js",
+    "pack:dir": "electron-builder --dir",
+    "build:win": "node scripts/generate-icons.js && electron-builder --win",
+    "verify:win": "node scripts/verify-windows-build.js"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.3.0"
+  },
+  "devDependencies": {
+    "electron": "^35.7.5",
+    "electron-builder": "^26.18.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "build": {
+    "appId": "com.bilidownloader.desktop",
+    "productName": "BiliDownloader",
+    "copyright": "Copyright © 2026 BiliDownloader",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "electron/**/*",
+      "core/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "!tests/**/*",
+      "!docs/**/*"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/bin",
+        "to": "bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "BiliDownloader",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}-${arch}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dir"
+      ],
+      "icon": "assets/icon.png"
+    }
+  }
+}

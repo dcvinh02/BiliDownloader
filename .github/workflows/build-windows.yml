@@ -1,0 +1,65 @@
+name: Build & Verify BiliDownloader Windows
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-cross-platform:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cài đặt thư viện Node (kèm Electron & FFmpeg theo HĐH)
+        run: npm ci --no-audit --no-fund
+
+      - name: Tạo icon ứng dụng
+        run: npm run icons
+
+      - name: Chạy bộ kiểm thử tự động (bỏ qua mạng Bilibili nếu IP CI bị 412)
+        env:
+          SKIP_LIVE_BILIBILI: "1"
+        run: npm test
+
+  build-windows-release:
+    needs: test-cross-platform
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cài đặt thư viện Node (Windows x64)
+        run: npm ci --no-audit --no-fund
+
+      - name: Tạo icon Windows (.ico / .png)
+        run: npm run icons
+
+      - name: Tải & nhúng ffmpeg.exe + yt-dlp.exe cho Windows
+        run: npm run fetch-win-bins
+
+      - name: Đóng gói bộ cài đặt NSIS (.exe) & bản Portable (.exe)
+        run: npm run build:win
+
+      - name: Kiểm tra thực tế BiliDownloader.exe trên Windows runner
+        run: npm run verify:win
+
+      - name: Upload bản cài đặt & Portable Windows (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: BiliDownloader-Windows-x64
+          path: |
+            dist/BiliDownloader-Setup-*.exe
+            dist/BiliDownloader-Portable-*.exe
